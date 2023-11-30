@@ -1,12 +1,17 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.base import BaseEstimator, ClassifierMixin
+from collections import defaultdict
 
 class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self):
         self.class_prior = None
         self.classes = None
         self.feature_probs = dict()
+
+    @staticmethod
+    def default_prob():
+        return 1e-5
 
     def fit(self, X, y):
         self.classes, counts = np.unique(y, return_counts=True)
@@ -22,7 +27,8 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                 feature_values, feature_counts = np.unique(class_data[:, feature_index], return_counts=True)
                 # print(class_, feature_values, feature_counts)
                 feature_probs = feature_counts / number_of_class_samples
-                self.feature_probs[class_][feature_index] = dict(zip(feature_values, feature_probs))
+                # self.feature_probs[class_][feature_index] = dict(zip(feature_values, feature_probs))
+                self.feature_probs[class_][feature_index] = defaultdict(self.default_prob, zip(feature_values, feature_probs))
 
         # print(self.feature_probs)
         return self
@@ -46,10 +52,14 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                     # print(class_, feature_index)
                     feature_value = sample[feature_index]
                     # print(class_, feature_index, feature_value)
-                    if feature_value in feature_probs[feature_index]:
-                        feature_prob = feature_probs[feature_index][feature_value]
-                    else:
-                        feature_prob = 1e-5
+
+                    # już niepotrzebne bo jest defaultdict
+                    # if feature_value in feature_probs[feature_index]:
+                    #     feature_prob = feature_probs[feature_index][feature_value]
+                    # else:
+                    #     feature_prob = 1e-5
+
+                    feature_prob = feature_probs[feature_index][feature_value]
                     # feature_prob = feature_probs[feature_index][feature_value]
                     likelihood *= feature_prob
 
