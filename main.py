@@ -20,7 +20,7 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
             self.feature_probs[class_] = dict()
             for feature_index in feature_indices:
                 feature_values, feature_counts = np.unique(class_data[:, feature_index], return_counts=True)
-                print(class_, feature_values, feature_counts)
+                # print(class_, feature_values, feature_counts)
                 feature_probs = feature_counts / number_of_class_samples
                 self.feature_probs[class_][feature_index] = dict(zip(feature_values, feature_probs))
 
@@ -45,37 +45,77 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                 for feature_index in range(number_of_features):
                     # print(class_, feature_index)
                     feature_value = sample[feature_index]
-                    print(class_, feature_index, feature_value)
-                    feature_prob = feature_probs[feature_index][feature_value]
+                    # print(class_, feature_index, feature_value)
+                    if feature_value in feature_probs[feature_index]:
+                        feature_prob = feature_probs[feature_index][feature_value]
+                    else:
+                        feature_prob = 1e-5
+                    # feature_prob = feature_probs[feature_index][feature_value]
                     likelihood *= feature_prob
 
                 predictions[sample_index, class_index] = class_prior * likelihood
-            print(predictions)
+            # print(predictions)
 
         return predictions
 
-
-
-
     def predict(self, X):
         predictions = self.predict_proba(X)
-        pass
-        # return self.classes[np.argmax(predictions, axis=1)]
+        return self.classes[np.argmax(predictions, axis=1)]
+    
+    def score(self, X, y):
+        y_pred = self.predict(X)
+        return np.sum(y_pred == y) / len(y)
+
+    
+    # def predict_proba(self, X):
+    #     predictions = []
+    #     self.class_priors = dict(zip(model.classes, model.class_prior))
+    #     for sample in X:
+    #         class_probs = {}
+    #         for c in self.class_priors:
+    #             prob = self.class_priors[c]
+    #             for feature_index, feature_value in enumerate(sample):
+    #                 if feature_value in self.feature_probs[c][feature_index]:
+    #                     prob *= self.feature_probs[c][feature_index][feature_value]
+    #             class_probs[c] = prob
+    #         predictions.append(class_probs)
+    #     return predictions
+
+
+
+
+    # def predict(self, X):
+    #     predictions = self.predict_proba(X)
+    #     return [max(p, key=p.get) for p in predictions]
+    #     return self.classes[np.argmax(predictions, axis=1)]
 
 
 
 
 
 
-def discretize_data(data, bins, min= None, max = None):
-    if min == None and max == None:
-        min = np.min(data)
-        max = np.max(data)
+def discretize_data(data, bins, min_val=None, max_val=None):
+    X_discretized = np.zeros_like(data)
 
-    bin_ranges = np.linspace(min, max, bins + 1)
-    discretized_data = np.digitize(data, bin_ranges, right=True)
+    for feature_index in range(data.shape[1]):
+        feature = data[:, feature_index]
+        feature_min = feature.min()
+        feature_max = feature.max()
 
-    return discretized_data
+        feauture_bins = np.linspace(feature_min, feature_max, bins)
+        X_discretized[:, feature_index] = np.digitize(feature, feauture_bins)
+
+    return X_discretized
+
+def discretize_data2(X, bins=10):
+    X_discretized = np.zeros_like(X)
+    for feature_index in range(X.shape[1]):
+        feature = X[:, feature_index]
+        feature_min = feature.min()
+        feature_max = feature.max()
+        feature_bins = np.linspace(feature_min, feature_max, bins)
+        X_discretized[:, feature_index] = np.digitize(feature, feature_bins)
+    return X_discretized
 
 data = np.genfromtxt('Datasets/Wine/wine.data', delimiter=',', dtype=np.float16)
 
@@ -90,16 +130,11 @@ X_test_discretized = discretize_data(X_test, bins)
 
 model = NaiveBayesClassifier()
 model.fit(X_train_discretized, y_train)
-print(model.feature_probs[1])
-# predictions = model.predict(X_test_discretized)
+# print(model.feature_probs[1][12].keys())
+predictions = model.predict(X_test_discretized)
+print(predictions)
+print(y_test)
+print(model.score(X_test_discretized, y_test))
+# print(dict(zip(model.classes, model.class_prior)))
 
-# a = np.arange(10)
-
-# for i in a:
-#     print(i)
-
-
-# print('-------------------')
-# for i in a:
-#     print(i)
 
