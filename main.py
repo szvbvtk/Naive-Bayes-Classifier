@@ -4,7 +4,8 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import defaultdict
 
 class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self):
+    def __init__(self, laplace_smoothing=False):
+        self.laplace_smoothing = laplace_smoothing
         self.class_prior = None
         self.classes = None
         self.feature_probs = dict()
@@ -26,7 +27,10 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
             for feature_index in feature_indices:
                 feature_values, feature_counts = np.unique(class_data[:, feature_index], return_counts=True)
                 # print(class_, feature_values, feature_counts)
-                feature_probs = feature_counts / number_of_class_samples
+                if self.laplace_smoothing:
+                    feature_probs = (feature_counts + 1) / (number_of_class_samples + feature_values.size)
+                else:
+                    feature_probs = feature_counts / number_of_class_samples
                 # self.feature_probs[class_][feature_index] = dict(zip(feature_values, feature_probs))
                 self.feature_probs[class_][feature_index] = defaultdict(self.default_prob, zip(feature_values, feature_probs))
 
@@ -138,7 +142,7 @@ bins = 30
 X_train_discretized = discretize_data(X_train, bins)
 X_test_discretized = discretize_data(X_test, bins)
 
-model = NaiveBayesClassifier()
+model = NaiveBayesClassifier(laplace_smoothing=True)
 model.fit(X_train_discretized, y_train)
 # print(model.feature_probs[1][12].keys())
 predictions = model.predict(X_test_discretized)
