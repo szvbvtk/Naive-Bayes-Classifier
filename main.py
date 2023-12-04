@@ -6,7 +6,7 @@ from collections import defaultdict
 class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, laplace_smoothing=False):
         self.laplace_smoothing = laplace_smoothing
-        self.class_prior = None
+        self.labelprior = None
         self.classes = None
         self.feature_probs = dict()
 
@@ -15,24 +15,24 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         return 1e-5
 
     def fit(self, X, y):
-        self.classes, counts = np.unique(y, return_counts=True)
-
-        self.class_prior = counts / y.size
+        labels, counts = np.unique(y, return_counts=True)
+        self.classes = dict(zip(labels, counts))
+        self.labelprior = counts / y.size
         number_of_features = X.shape[1]
         feature_indices = np.arange(number_of_features)
-        for class_ in self.classes:
-            class_data = X[y == class_]
-            number_of_class_samples = class_data.shape[0]
-            self.feature_probs[class_] = dict()
+        for label in labels:
+            labeldata = X[y == label]
+            number_of_labelsamples = labeldata.shape[0]
+            self.feature_probs[label] = dict()
             for feature_index in feature_indices:
-                feature_values, feature_counts = np.unique(class_data[:, feature_index], return_counts=True)
+                feature_values, feature_counts = np.unique(labeldata[:, feature_index], return_counts=True)
 
                 if self.laplace_smoothing:
-                    feature_probs = (feature_counts + 1) / (number_of_class_samples + feature_values.size)
+                    feature_probs = (feature_counts + 1) / (number_of_labelsamples + feature_values.size)
                 else:
-                    feature_probs = feature_counts / number_of_class_samples
+                    feature_probs = feature_counts / number_of_labelsamples
  
-                self.feature_probs[class_][feature_index] = defaultdict(self.default_prob, zip(feature_values, feature_probs))
+                self.feature_probs[label][feature_index] = defaultdict(self.default_prob, zip(feature_values, feature_probs))
 
         return self
     
@@ -42,14 +42,14 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         number_of_samples = X.shape[0]
         number_of_features = X.shape[1]
         feature_indices = np.arange(number_of_features)
-        number_of_classes = self.classes.size
+        number_of_classes = len(self.classes.keys())
 
         predictions = np.empty((number_of_samples, number_of_classes))
 
         for sample_index, sample in enumerate(X):
-            for class_index, class_ in enumerate(self.classes):
-                class_prior = self.class_prior[class_index]
-                feature_probs = self.feature_probs[class_]
+            for labelindex, label in enumerate(self.classes.keys()):
+                labelprior = self.labelprior[labelindex]
+                feature_probs = self.feature_probs[label]
                 likelihood = 1
 
                 for feature_index in feature_indices:
@@ -64,14 +64,15 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                     feature_prob = feature_probs[feature_index][feature_value]
                     likelihood *= feature_prob
 
-                predictions[sample_index, class_index] = class_prior * likelihood
+                predictions[sample_index, labelindex] = labelprior * likelihood
  
 
         return predictions
 
     def predict(self, X):
         predictions = self.predict_proba(X)
-        return self.classes[np.argmax(predictions, axis=1)]
+        labels = np.array(list(self.classes.keys()))
+        return labels[np.argmax(predictions, axis=1)]
 
 
 
@@ -121,6 +122,7 @@ print(y_test)
 print(score(predictions, y_test))
 
 # ccc = {1:'a', 2:'b', 3:'c'}
+# print(len(ccc.keys()))
 # print(np.array(list(ccc.keys()))[[0,1,0]])
 
 
