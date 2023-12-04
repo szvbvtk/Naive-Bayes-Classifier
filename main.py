@@ -6,7 +6,6 @@ from collections import defaultdict
 class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, laplace_smoothing=False):
         self.laplace_smoothing = laplace_smoothing
-        self.labelprior = None
         self.classes = None
         self.feature_probs = dict()
 
@@ -16,8 +15,8 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         labels, counts = np.unique(y, return_counts=True)
-        self.classes = dict(zip(labels, counts))
-        self.labelprior = counts / y.size
+        priors = counts / y.size
+        self.classes = dict(zip(labels, priors))
         number_of_features = X.shape[1]
         feature_indices = np.arange(number_of_features)
         for label in labels:
@@ -47,8 +46,8 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         predictions = np.empty((number_of_samples, number_of_classes))
 
         for sample_index, sample in enumerate(X):
-            for labelindex, label in enumerate(self.classes.keys()):
-                labelprior = self.labelprior[labelindex]
+            for label_index, label in enumerate(self.classes.keys()):
+                prior = self.classes[label]
                 feature_probs = self.feature_probs[label]
                 likelihood = 1
 
@@ -62,9 +61,9 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                     #     feature_prob = 1e-5
 
                     feature_prob = feature_probs[feature_index][feature_value]
-                    likelihood *= feature_prob
+                    prior *= feature_prob
 
-                predictions[sample_index, labelindex] = labelprior * likelihood
+                predictions[sample_index, label_index] = prior
  
 
         return predictions
@@ -86,20 +85,9 @@ def discretize_data(data, bins, min_refs, max_refs):
     for feature_index in range(data.shape[1]):
         feature = data[:, feature_index]
 
-
         feauture_bins = np.linspace(min_refs[feature_index], max_refs[feature_index], bins)
         X_discretized[:, feature_index] = np.digitize(feature, feauture_bins)
 
-    return X_discretized
-
-# def discretize_data2(X, bins=10):
-    X_discretized = np.zeros_like(X)
-    for feature_index in range(X.shape[1]):
-        feature = X[:, feature_index]
-        feature_min = feature.min()
-        feature_max = feature.max()
-        feature_bins = np.linspace(feature_min, feature_max, bins)
-        X_discretized[:, feature_index] = np.digitize(feature, feature_bins)
     return X_discretized
 
 data = np.genfromtxt('Datasets/Wine/wine.data', delimiter=',', dtype=np.float16)
@@ -120,10 +108,6 @@ predictions = model.predict(X_test_discretized)
 print(predictions)
 print(y_test)
 print(score(predictions, y_test))
-
-# ccc = {1:'a', 2:'b', 3:'c'}
-# print(len(ccc.keys()))
-# print(np.array(list(ccc.keys()))[[0,1,0]])
 
 
 
