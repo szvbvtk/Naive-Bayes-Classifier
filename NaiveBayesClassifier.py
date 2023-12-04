@@ -1,7 +1,35 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import defaultdict
+from sklearn.preprocessing import LabelEncoder
+
+def score(y_predictions, y):
+    return np.sum(y_predictions == y) / y.size
+
+
+
+def discretize_numerical_data(data, bins, min_refs, max_refs):
+    X_discretized = np.empty_like(data)
+    for feature_index in range(data.shape[1]):
+        feature = data[:, feature_index]
+
+        feauture_bins = np.linspace(min_refs[feature_index], max_refs[feature_index], bins)
+        X_discretized[:, feature_index] = np.digitize(feature, feauture_bins)
+
+    return X_discretized
+
+def discretize_categorical_data(data):
+    encoded_data = data.copy()
+
+    label_encoder = LabelEncoder()
+
+    # Pętla po kolumnach
+    for col_index in range(encoded_data.shape[1]):
+        encoded_data[:, col_index] = label_encoder.fit_transform(encoded_data[:, col_index])
+
+    return encoded_data
+
+
 
 class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, laplace_smoothing=False):
@@ -72,42 +100,3 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         predictions = self.predict_proba(X)
         labels = np.array(list(self.classes.keys()))
         return labels[np.argmax(predictions, axis=1)]
-
-
-
-def score(y_predictions, y):
-    return np.sum(y_predictions == y) / y.size
-
-
-
-def discretize_data(data, bins, min_refs, max_refs):
-    X_discretized = np.empty_like(data)
-    for feature_index in range(data.shape[1]):
-        feature = data[:, feature_index]
-
-        feauture_bins = np.linspace(min_refs[feature_index], max_refs[feature_index], bins)
-        X_discretized[:, feature_index] = np.digitize(feature, feauture_bins)
-
-    return X_discretized
-
-data = np.genfromtxt('Datasets/Wine/wine.data', delimiter=',', dtype=np.float16)
-
-X = data[:, 1:]
-y = data[:, 0]
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=21)
-
-number_of_bins = 20
-X_train_discretized = discretize_data(data=X_train, bins=number_of_bins, min_refs=np.min(X_test, axis=0), max_refs=np.max(X_test, axis=0))
-X_test_discretized = discretize_data(data=X_test, bins=number_of_bins, min_refs=np.min(X_test, axis=0), max_refs=np.max(X_test, axis=0))
-
-model = NaiveBayesClassifier(laplace_smoothing=True)
-model.fit(X_train_discretized, y_train)
-
-predictions = model.predict(X_test_discretized)
-print(predictions)
-print(y_test)
-print(score(predictions, y_test))
-
-
-
