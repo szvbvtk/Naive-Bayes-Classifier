@@ -18,6 +18,7 @@ def discretize_numerical_data(data, bins, min_refs, max_refs):
 
     return X_discretized
 
+# nie wiem po co to robiłem 
 def discretize_categorical_data(data):
     encoded_data = data.copy()
 
@@ -45,18 +46,19 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
         priors = counts / y.size
         self.classes = dict(zip(labels, priors))
         number_of_features = X.shape[1]
-        feature_indices = np.arange(number_of_features)
+
         for label in labels:
-            labeldata = X[y == label]
-            number_of_labelsamples = labeldata.shape[0]
+            label_data = X[y == label]
+            number_of_samples = label_data.shape[0]
             self.feature_probs[label] = dict()
-            for feature_index in feature_indices:
-                feature_values, feature_counts = np.unique(labeldata[:, feature_index], return_counts=True)
+
+            for feature_index in np.arange(number_of_features):
+                feature_values, feature_counts = np.unique(label_data[:, feature_index], return_counts=True)
 
                 if self.laplace_smoothing:
-                    feature_probs = (feature_counts + 1) / (number_of_labelsamples + feature_values.size)
+                    feature_probs = (feature_counts + 1) / (number_of_samples + feature_values.size)
                 else:
-                    feature_probs = feature_counts / number_of_labelsamples
+                    feature_probs = feature_counts / number_of_samples
  
                 self.feature_probs[label][feature_index] = defaultdict(self.default_prob, zip(feature_values, feature_probs))
 
@@ -67,7 +69,6 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         number_of_samples = X.shape[0]
         number_of_features = X.shape[1]
-        feature_indices = np.arange(number_of_features)
         number_of_classes = len(self.classes.keys())
 
         predictions = np.empty((number_of_samples, number_of_classes))
@@ -77,14 +78,8 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
                 prior = self.classes[label]
                 feature_probs = self.feature_probs[label]
 
-                for feature_index in feature_indices:
+                for feature_index in np.arange(number_of_features):
                     feature_value = sample[feature_index]
-
-                    # już nie jest potrzebne bo jest defaultdict
-                    # if feature_value in feature_probs[feature_index]:
-                    #     feature_prob = feature_probs[feature_index][feature_value]
-                    # else:
-                    #     feature_prob = 1e-5
 
                     feature_prob = feature_probs[feature_index][feature_value]
                     prior *= feature_prob
