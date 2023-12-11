@@ -1,5 +1,5 @@
 import numpy as np
-from NaiveBayesClassifier import NaiveBayesClassifier, score, discretize_categorical_data
+from NaiveBayesClassifier import NaiveBayesClassifier, score
 from NaiveBayesClassifier_log import NaiveBayesClassifier_log
 from sklearn.model_selection import train_test_split
 

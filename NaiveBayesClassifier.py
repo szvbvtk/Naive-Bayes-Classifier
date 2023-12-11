@@ -1,33 +1,22 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import defaultdict
-from sklearn.preprocessing import LabelEncoder
 
 def score(y_predictions, y):
     return np.sum(y_predictions == y) / y.size
 
 
 
-def discretize_numerical_data(data, bins, min_refs, max_refs):
-    X_discretized = np.empty_like(data)
-    for feature_index in range(data.shape[1]):
-        feature = data[:, feature_index]
-
+def discretize_data(data, bins, min_refs, max_refs):
+    data_discretized = np.empty_like(data)
+    for feature_index in np.arange(data.shape[1]):
+        feature_data = data[:, feature_index]
         feauture_bins = np.linspace(min_refs[feature_index], max_refs[feature_index], bins)
-        X_discretized[:, feature_index] = np.digitize(feature, feauture_bins)
+        data_discretized[:, feature_index] = np.digitize(feature_data, feauture_bins)
 
-    return X_discretized
+    return data_discretized
 
-# nie wiem po co to robiłem 
-def discretize_categorical_data(data):
-    encoded_data = data.copy()
 
-    label_encoder = LabelEncoder()
-
-    for col_index in range(encoded_data.shape[1]):
-        encoded_data[:, col_index] = label_encoder.fit_transform(encoded_data[:, col_index])
-
-    return encoded_data
 
 
 
@@ -54,7 +43,7 @@ class NaiveBayesClassifier(BaseEstimator, ClassifierMixin):
 
             for feature_index in np.arange(number_of_features):
                 feature_values, feature_counts = np.unique(label_data[:, feature_index], return_counts=True)
-
+                print(feature_values)
                 if self.laplace_smoothing:
                     feature_probs = (feature_counts + 1) / (number_of_samples + feature_values.size)
                 else:
