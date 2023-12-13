@@ -5,26 +5,42 @@ from collections import defaultdict
 def score(y_predictions, y):
     return np.sum(y_predictions == y) / y.size
 
-class NaiveBayesClassifier_log(BaseEstimator, ClassifierMixin):
+
+
+def discretize_data(data, bins, min_refs, max_refs):
+    data_discretized = np.empty_like(data)
+    for feature_index in np.arange(data.shape[1]):
+        feature_data = data[:, feature_index]
+        feauture_bins = np.linspace(min_refs[feature_index], max_refs[feature_index], bins)
+        data_discretized[:, feature_index] = np.digitize(feature_data, feauture_bins)
+
+    return data_discretized
+
+
+
+
+
+class NaiveBayesClassifierLog(BaseEstimator, ClassifierMixin):
     def __init__(self, laplace_smoothing=False):
         self.laplace_smoothing = laplace_smoothing
         self.classes = None
-        self.feature_log_probs = dict()
+        self.feature_probs = dict()
 
     @staticmethod
-    def default_log_prob():
+    def default_prob():
         return np.log(1e-5)
 
     def fit(self, X, y):
         labels, counts = np.unique(y, return_counts=True)
-        log_priors = np.log(counts / y.size)
-        self.classes = dict(zip(labels, log_priors))
+        priors = np.log(counts / y.size)
+        self.classes = dict(zip(labels, priors))
         number_of_features = X.shape[1]
 
         for label in labels:
             label_data = X[y == label]
             number_of_samples = label_data.shape[0]
-            self.feature_log_probs[label] = dict()
+            self.feature_probs[label] = dict()
+
             for feature_index in np.arange(number_of_features):
                 feature_values, feature_counts = np.unique(label_data[:, feature_index], return_counts=True)
 
@@ -33,34 +49,36 @@ class NaiveBayesClassifier_log(BaseEstimator, ClassifierMixin):
                 else:
                     feature_probs = np.log(feature_counts / number_of_samples)
  
-                self.feature_log_probs[label][feature_index] = defaultdict(self.default_log_prob, zip(feature_values, feature_probs))
+                self.feature_probs[label][feature_index] = defaultdict(self.default_prob, zip(feature_values, feature_probs))
 
         return self
+    
 
-    def predict_log_proba(self, X):
+    
+    def predict_proba(self, X):
         number_of_samples = X.shape[0]
         number_of_features = X.shape[1]
-        feature_indices = np.arange(number_of_features)
         number_of_classes = len(self.classes.keys())
 
-        log_predictions = np.empty((number_of_samples, number_of_classes))
+        predictions = np.empty((number_of_samples, number_of_classes))
 
         for sample_index, sample in enumerate(X):
             for label_index, label in enumerate(self.classes.keys()):
-                log_prior = self.classes[label]
-                feature_log_probs = self.feature_log_probs[label]
+                prior = self.classes[label]
+                feature_probs = self.feature_probs[label]
 
-                for feature_index in feature_indices:
+                for feature_index in np.arange(number_of_features):
                     feature_value = sample[feature_index]
 
-                    log_feature_prob = feature_log_probs[feature_index][feature_value]
-                    log_prior += log_feature_prob
+                    feature_prob = feature_probs[feature_index][feature_value]
+                    prior += feature_prob
 
-                log_predictions[sample_index, label_index] = log_prior
+                predictions[sample_index, label_index] = prior
+ 
 
-        return log_predictions
+        return predictions
 
     def predict(self, X):
-        log_predictions = self.predict_log_proba(X)
+        predictions = self.predict_proba(X)
         labels = np.array(list(self.classes.keys()))
-        return labels[np.argmax(log_predictions, axis=1)]
+        return labels[np.argmax(predictions, axis=1)]
