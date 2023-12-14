@@ -1,19 +1,17 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import defaultdict
+from sklearn.preprocessing import KBinsDiscretizer
 
 
 def score(y_predictions, y):
     return np.sum(y_predictions == y) / y.size
 
-def discretize_data(data, bins, min_refs, max_refs):
-    data_discretized = np.empty_like(data)
-    for feature_index in np.arange(data.shape[1]):
-        feature_data = data[:, feature_index]
-        feauture_bins = np.linspace(min_refs[feature_index], max_refs[feature_index], bins)
-        data_discretized[:, feature_index] = np.digitize(feature_data, feauture_bins)
+def discretize(data, X_train, X_test, number_of_bins=20):
+    d = KBinsDiscretizer(n_bins=number_of_bins, encode='ordinal', strategy='uniform')
+    d.fit(data)
+    return d.transform(X_train), d.transform(X_test)
 
-    return data_discretized
 
 class NaiveBayesClassifier_continuous(BaseEstimator, ClassifierMixin):
     def __init__(self):
@@ -34,16 +32,15 @@ class NaiveBayesClassifier_continuous(BaseEstimator, ClassifierMixin):
                 std = np.std(label_data[:, feature_index])
                 mean = np.mean(label_data[:, feature_index])
 
-                # self.feature_stats[label][feature_index] = (mean, std)
                 self.feature_stats[label][feature_index] = {'mean': mean, 'std': std}
 
         return self
 
     def predict_proba(self, X):
-        num_samples = X.shape[0]
-        num_classes = len(self.classes.keys())
+        number_of_samples = X.shape[0]
+        number_of_classes = len(self.classes.keys())
 
-        predictions = np.empty((num_samples, num_classes))
+        predictions = np.empty((number_of_samples, number_of_classes))
 
         for sample_index, sample in enumerate(X):
             for label_index, label in enumerate(self.classes.keys()):

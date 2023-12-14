@@ -15,10 +15,11 @@ def main_wine(laplace=False, log=False, continuous=False):
         nbc = NaiveBayesClassifier_continuous()
         predictions = nbc.fit(X_train, y_train).predict(X_test)
     else:
-        number_of_bins = 20
-        X_train_discretized = discretize_data(data=X_train, bins=number_of_bins, min_refs=np.min(X_test, axis=0), max_refs=np.max(X_test, axis=0))
-        X_test_discretized = discretize_data(data=X_test, bins=number_of_bins, min_refs=np.min(X_test, axis=0), max_refs=np.max(X_test, axis=0))
+        _number_of_bins = 10
 
+        X_train_discretized, X_test_discretized = discretize(X, X_train, X_test, number_of_bins=_number_of_bins)
+
+        
         if log:
             nbc = NaiveBayesClassifier_discrete_log(laplace_correction=laplace)
         else:
@@ -33,7 +34,7 @@ def main_mushroom(laplace=False, log=False):
     X = data[:, 1:]
     y = data[:, 0]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=2121)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=2121)
 
     if log:
         nbc = NaiveBayesClassifier_discrete_log(laplace_correction=laplace)
@@ -47,6 +48,6 @@ def main_mushroom(laplace=False, log=False):
 
 
 if __name__ == '__main__':
-    # main_wine(laplace=False, log=True, continuous=False)
-    main_mushroom(laplace=False, log=True)
+    # main_wine(laplace=False, log=False, continuous=False)
+    main_mushroom(laplace=True, log=True)
 
